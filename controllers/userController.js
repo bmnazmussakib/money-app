@@ -1,34 +1,94 @@
-const validate = require("../validator/registerValidator");
+const User = require("../models/User");
+const bcrypt = require('bcrypt');
+const registerValidator = require("../validator/registerValidator");
+const loginValidator = require("../validator/loginValidator");
+const { catchError, resourceError } = require("../utils/error");
 
 module.exports = {
     login(req, res) {
-        let name = req.body.name;
-        let email = req.body.email;
 
-        res.json({
-            message: `Welcome ${name} to Money App. You can login with this email: ${email}`
-        })
+        // Extract Data from request
+        let { email, password } = req.body;
+        
+        // Validate Data
+        let loginValidator = loginValidator({email, password})
+
+        if(!loginValidator.isValid){
+            res.status(400).json(loginValidator.error)
+        } else {
+            user.findOne({email})
+            .then(user => {
+                // Check for user availability
+                if (!user) {
+                    return resourceError(res, "User not found")
+                }
+
+                // Compare password
+                bcrypt.compare(password, user.password, (err, result)=> {
+                    if (err) {
+                        return catchError(res, err)
+                    }
+                    if(!result) {
+                        return resourceError(res, "password doesn't match")
+                    }
+                })
+            })
+            .catch(error => catchError(res, error))
+        }
+
+
+        
+        
+        // Generate token and response back
+
     },
 
     register(req, res) {
-        // Read client data
-        let {name, email, password, confirmPassword} = req.body;
+        // Step - 1: Read client data
+        let { name, email, password, confirmPassword } = req.body;
 
-        // Validation client data
-        let validator = validate({name, email, password, confirmPassword})
+        // Step - 2: Validation client data
+        let registerValidator = registerValidator({ name, email, password, confirmPassword })
 
-        if (!validator.isValid) {
-            res.status(400).json(validator.error)
+        if (!registerValidator.isValid) {
+            res.status(400).json(registerValidator.error)
         } else {
-            res.status(200).json({
-                message: "Everything is ok"
-            })
-        }
+            // Check duplicate user
+            User.findOne({ email })
+                .then(user => {
+                    if (user) {
+                        return resourceError(res, "User already exist");
+                    }
 
-        // Check duplicate user
-        // new user object
-        // save to database
-        // response back with new data
+                    bcrypt.hash(password, 10, (err, hash) => {
+                        if (err) {
+                            return resourceError(res, "Server Error Occurred");
+                        }
+
+                        // new user object
+                        let user = new User({
+                            name,
+                            email,
+                            password: hash
+                        })
+
+                        // save to database
+                        user.save()
+                            .then(user => {
+                                // response back with new data
+                                res.status(201).json({
+                                    message: "User Created Successfully",
+                                    user
+                                })
+                            })
+                            .catch(error => catchError(res, error))
+
+
+                    });
+
+                })
+                .catch(error => catchError(res, error))
+        }
     }
 }
 

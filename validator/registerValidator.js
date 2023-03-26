@@ -1,6 +1,6 @@
 const validator = require('validator');
 
-const validate = user => {
+const registerValidator = user => {
     let error = {}
 
     if (!user.name) {
@@ -32,4 +32,4 @@ const validate = user => {
 }
 
 
-module.exports = validate;
+module.exports = registerValidator;
