@@ -1,45 +1,78 @@
 const User = require("../models/User");
 const bcrypt = require('bcrypt');
 const registerValidator = require("../validator/registerValidator");
+const { serverError, resourceError } = require("../utils/error");
 const loginValidator = require("../validator/loginValidator");
-const { catchError, resourceError } = require("../utils/error");
+const jwt = require('jsonwebtoken');
 
 module.exports = {
     login(req, res) {
 
-        // Extract Data from request
-        let { email, password } = req.body;
-        
-        // Validate Data
-        let loginValidator = loginValidator({email, password})
+        // Step - 1: Extract Data from request
+        // Step - 2: Validate Data
+        // Step - 3: Check user availability
+        // Step - 4: Compare password
+        // Step - 5: Generate token and response back
 
-        if(!loginValidator.isValid){
-            res.status(400).json(loginValidator.error)
-        } else {
-            user.findOne({email})
+
+        // =======================================
+        // Step - 1: Extract Data from request
+        // =======================================
+        let { email, password } = req.body;
+
+
+        // =======================================
+        // Step - 2: Validate Data
+        // =======================================
+        const validate = loginValidator({ email, password })
+        if (!validate.isValid) {
+            return res.status(400).json(validate.error)
+        }
+
+
+        // =======================================
+        // Step - 3: Check user availability
+        // =======================================
+        User.findOne({ email })
             .then(user => {
-                // Check for user availability
                 if (!user) {
                     return resourceError(res, "User not found")
                 }
 
-                // Compare password
-                bcrypt.compare(password, user.password, (err, result)=> {
+                // =======================================
+                // Step - 4: Compare password
+                // =======================================
+                bcrypt.compare(password, user.password, (err, result) => {
                     if (err) {
-                        return catchError(res, err)
+                        return serverError(res, err)
                     }
-                    if(!result) {
+
+                    if (!result) {
                         return resourceError(res, "password doesn't match")
                     }
-                })
+
+                    // =======================================
+                    // Step - 5: Generate token and response back
+                    // =======================================
+                    let token = jwt.sign({
+                        _id: user._id,
+                        name: user.name,
+                        email: user.email
+                    }, "SECRET", { expiresIn: '1h' })
+
+
+                    res.status(200).json({
+                        message: "Login Successfully",
+                        token: `Bearer ${token}`
+                    })
+
+
+                });
             })
-            .catch(error => catchError(res, error))
-        }
+            .catch(err => { serverError(res, err) })
 
 
-        
-        
-        // Generate token and response back
+
 
     },
 
@@ -48,10 +81,10 @@ module.exports = {
         let { name, email, password, confirmPassword } = req.body;
 
         // Step - 2: Validation client data
-        let registerValidator = registerValidator({ name, email, password, confirmPassword })
+        const validate = registerValidator({ name, email, password, confirmPassword })
 
-        if (!registerValidator.isValid) {
-            res.status(400).json(registerValidator.error)
+        if (!validate.isValid) {
+            res.status(400).json(validate.error)
         } else {
             // Check duplicate user
             User.findOne({ email })
@@ -81,13 +114,13 @@ module.exports = {
                                     user
                                 })
                             })
-                            .catch(error => catchError(res, error))
+                            .catch(error => serverError(res, error))
 
 
                     });
 
                 })
-                .catch(error => catchError(res, error))
+                .catch(error => serverError(res, error))
         }
     }
 }

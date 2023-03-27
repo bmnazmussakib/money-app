@@ -4,11 +4,11 @@ const { register, login } = require('../controllers/userController');
 
 
 // Register Route
-// localhost:4000/api/users/register
+// localhost:4000/api/user/register
 router.post('/register', register)
 
 // Login Route
-// localhost:4000/api/users/login
+// localhost:4000/api/user/login
 router.post('/login', login)
 
 module.exports = router;
