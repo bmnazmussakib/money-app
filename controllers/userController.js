@@ -77,16 +77,33 @@ module.exports = {
     },
 
     register(req, res) {
-        // Step - 1: Read client data
+
+        // Step - 1: Extract Data from request
+        // Step - 2: Validate Data
+        // Step - 3: Check duplicate user
+        // Step - 4: New User Object
+        // Step - 5: Save To Database
+        // Step - 6: Response Back With New Data
+
+
+
+        // =======================================
+        // Step - 1: Extract Data from request
+        // =======================================
         let { name, email, password, confirmPassword } = req.body;
 
-        // Step - 2: Validation client data
-        const validate = registerValidator({ name, email, password, confirmPassword })
 
+        // =======================================
+        // Step - 2: Validate Data
+        // =======================================
+        const validate = registerValidator({ name, email, password, confirmPassword })
         if (!validate.isValid) {
             res.status(400).json(validate.error)
         } else {
-            // Check duplicate user
+
+            // =======================================
+            // Step - 3: Check duplicate user
+            // =======================================
             User.findOne({ email })
                 .then(user => {
                     if (user) {
@@ -98,25 +115,31 @@ module.exports = {
                             return resourceError(res, "Server Error Occurred");
                         }
 
-                        // new user object
+
+                        // =======================================
+                        // Step - 4: New User Object
+                        // =======================================
                         let user = new User({
                             name,
                             email,
                             password: hash
                         })
 
-                        // save to database
+                        // =======================================
+                        // Step - 5: Save To Database
+                        // =======================================
                         user.save()
                             .then(user => {
-                                // response back with new data
+
+                                // =======================================
+                                // Step - 6: Response Back With New Data
+                                // =======================================
                                 res.status(201).json({
                                     message: "User Created Successfully",
                                     user
                                 })
                             })
                             .catch(error => serverError(res, error))
-
-
                     });
 
                 })
